@@ -13,6 +13,19 @@ from telegram.ext import (
     filters,
 )
 
+
+
+from database import (
+     create_connection, 
+     create_table, 
+     save_reservation, 
+     check_reservation, 
+     delete_reservation, 
+     get_user_reservations,
+     initialize_database
+)
+
+
 load_dotenv()
 BOT_TOKEN = os.getenv("TOKEN")
 
@@ -111,13 +124,24 @@ async def save_contact(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     context.user_data["reservation_id"] = reservation_id
 
 
-    reservations[reservation_id]  = {
-        "user_id": update.effective_user.id,
-        "service": context.user_data["service"],
-        "date": context.user_data["date"],
-        "time": context.user_data["time"],
-        "contact": user_name,
-    }
+
+
+    # Guardar la reserva en la base de datos
+    db_result = save_reservation(
+        user_id = update.effective_user.id,
+        service = context.user_data["service"],
+        date = context.user_data["date"],
+        time = context.user_data["time"],
+        contact= user_name,
+    )
+
+
+    
+
+    if db_result:
+        logger.info(f"Reserva guardada en la base de datos: {reservation_id}")
+    else:
+        logger.error(f"No se pudo guardar la reserva en la base de datos: {reservation_id}")
 
     keyboard = [
         [
@@ -129,12 +153,12 @@ async def save_contact(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
-        f"Resumen de tu reserva:\n\n"
-        f"ID de Reserva: {reservation_id}\n"
-        f"Servicio: {context.user_data['service']}\n"
-        f"Fecha: {context.user_data['date']}\n"
-        f"Hora: {context.user_data['time']}\n"
-        f"Contacto: {context.user_data['contact']}\n\n"
+        f"📝 Resumen de tu reserva:\n\n"
+        f"🆔 ID de Reserva: {reservation_id}\n"
+        f"🧩 Servicio: {context.user_data['service']}\n"
+        f"📅 Fecha: {context.user_data['date']}\n"
+        f"🕒 Hora: {context.user_data['time']}\n"
+        f"👤 Contacto: {context.user_data['contact']}\n\n"
         "Por favor, confirma tu reserva:",
         reply_markup=reply_markup,
         parse_mode="Markdown",
@@ -253,6 +277,8 @@ async def select_contact_info(update: Update, context: ContextTypes.DEFAULT_TYPE
 def main() -> None:
     """Configura el bot y lo ejecuta"""
  
+    if not  initialize_database():
+        logger.info("NO SE PUDO CREAR LA BASE DE DATOS")
     application = Application.builder().token(BOT_TOKEN).build()
 
     conv_handler = ConversationHandler(
