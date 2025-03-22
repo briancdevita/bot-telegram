@@ -26,7 +26,7 @@ def create_table(conn):
         c.execute(
             """
             CREATE TABLE IF NOT EXISTS reservations (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id TEXT PRIMARY KEY,
                 user_id INTEGER NOT NULL,
                 service TEXT NOT NULL,
                 date TEXT NOT NULL,
@@ -44,7 +44,7 @@ def create_table(conn):
 
 
 
-def save_reservation( user_id, service, date, time, contact):
+def save_reservation( id, user_id, service, date, time, contact):
     print(contact)
 
 
@@ -55,10 +55,10 @@ def save_reservation( user_id, service, date, time, contact):
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO reservations (user_id, service, date, time, contact)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO reservations (id, user_id, service, date, time, contact)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                (
+                (   id,
                     user_id, 
                     service, 
                     date, 
@@ -79,6 +79,7 @@ def save_reservation( user_id, service, date, time, contact):
 
 
 def delete_reservation(reservation_id):
+    print("Resevation from delete_reservation", reservation_id)
     conn = create_connection()
     if conn is not None:
         try:

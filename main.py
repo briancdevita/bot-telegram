@@ -120,7 +120,7 @@ async def save_contact(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     context.user_data["contact"] = user_name
 
 
-    reservation_id = f"RES-{len(reservations) + 1:04d}"
+    reservation_id = F"RES-{datetime.now().strftime('%Y%m%d%H%M%S')}"
     context.user_data["reservation_id"] = reservation_id
 
 
@@ -128,6 +128,7 @@ async def save_contact(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
     # Guardar la reserva en la base de datos
     db_result = save_reservation(
+        id = reservation_id,
         user_id = update.effective_user.id,
         service = context.user_data["service"],
         date = context.user_data["date"],
@@ -207,17 +208,17 @@ async def cancel_reservation(update: Update, context: ContextTypes.DEFAULT_TYPE)
     
 
     reservation_id = context.args[0]
-    print(reservation_id)
+    print("reservation_id", context.user_data['reservation_id'])
 
 
-    if ( 
-        reservation_id  in reservations and 
-        reservations[reservation_id]["user_id"] == update.effective_user.id
-    ): 
-        del reservations[reservation_id]
-        await update.message.reply_text(
-            f"Reserva {reservation_id} cancelada. Para hacer una nueva reserva usa el comando /start."
-        )
+    if check_reservation(reservation_id):
+        if delete_reservation(reservation_id):
+            await update.message.reply_text(
+                f"Reserva {reservation_id} cancelada."
+            )
+        else:
+            await update.message.reply_text(
+                "No se pudo cancelar la reserva.")
     else:
         await update.message.reply_text(
             "No se encontro ninguna reserva con ese ID."
@@ -229,19 +230,24 @@ async def list_reservations(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     """Lista las reservas del usuario"""
 
     user_id = update.effective_user.id
-    user_reservations = [
-        f"ID: {reservation_id}\n"
-        f"Servicio: {reservation['service']}\n"
-        f"Fecha: {reservation['date']}\n"
-        f"Hora: {reservation['time']}\n"
-        f"Contacto: {reservation['contact']}\n\n"
-        for reservation_id, reservation in reservations.items()
-        if reservation["user_id"] == user_id
-    ]
+    user_reservations = get_user_reservations(user_id)
+
+    if  user_reservations:
+        message = "📋* Tus reservas:*\n\n"
+
+        for reservation in user_reservations:
+
+            message += (
+                f"🆔 ID de Reserva: {reservation['id']}\n"
+                f"🧩 Servicio: {reservation['service']}\n"
+                f"📅 Fecha: {reservation['date']}\n"
+                f"🕒 Hora: {reservation['time']}\n"
+                f"👤 Contacto: {reservation['contact']}\n\n"
+            )
 
     if user_reservations:
         await update.message.reply_text(
-            "Tus reservas:\n\n" + "\n".join(user_reservations)
+            message, parse_mode="Markdown"
         )
     else:
         await update.message.reply_text("No tienes reservas.")
