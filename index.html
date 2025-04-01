@@ -4,7 +4,67 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Confirmación de Reserva</title>
-    <link rel="stylesheet" href="index.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            color: #212529;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header h2 {
+            text-align: center;
+            color: #343a40;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        .content p {
+            line-height: 1.6;
+            margin: 10px 0;
+        }
+        .reservation-details p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        .reservation-details p strong {
+            color: #495057;
+        }
+        .button-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .button-container .button {
+            display: inline-block;
+            padding: 12px 25px;
+            background-color: #007bff;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 0.3s ease;
+        }
+        .button-container .button:hover {
+            background-color: #0056b3;
+        }
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 30px;
+        }
+        .footer p {
+            margin: 5px 0;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -17,7 +77,7 @@
             <p>Le confirmamos que su reserva ha sido registrada correctamente en nuestro sistema.</p>
             
             <div class="reservation-details">
-                <p><strong>ID de Reserva:</strong> {{reservation_id}}</p>
+                <p><strong>ID de Reserva:</strong> {{reservation_data}}</p>
                 <p><strong>Servicio:</strong> {{service}}</p>
                 <p><strong>Fecha:</strong> {{date}}</p>
                 <p><strong>Hora:</strong> {{time}}</p>
@@ -28,7 +88,7 @@
             <p>Si necesita cancelar o modificar su reserva, por favor contáctenos con anticipación o utilice nuestro bot de Telegram.</p>
             
             <div class="button-container">
-                <a href="https://t.me/tu_bot" class="button">Acceder al Bot</a>
+                <a href="https://t.me/botardito_tiktok" class="button">Acceder al Bot</a>
             </div>
         </div>
         <div class="footer">
@@ -36,5 +96,7 @@
             <p>© {{current_year}} Sistema de Reservas</p>
         </div>
     </div>
+
+    
 </body>
 </html>

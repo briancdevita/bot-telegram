@@ -1,7 +1,6 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-import os
 from jinja2 import Template
 import json 
 from config import EMAIL_CONFIG
@@ -24,15 +23,20 @@ def send_email(to_email, reservation_data):
   with open("index.html", "r", encoding="utf-8") as file:
     template = Template(file.read())
 
+#   with open("index.css", "r", encoding="utf-8") as file:
+#     css_styles = Template(file.read())
+
 
     html_content = template.render(
+        # css_styles=css_styles,
         contact_name=reservation_data['contact'],
         reservation_data=reservation_data['id'],
         service=reservation_data['service'],
         date=reservation_data['date'],
-        time=reservation_data['time'],  
-        
+        time=reservation_data['time'],
+       
     )
+    print(reservation_data['id'])
 
     msg.attach(MIMEText(html_content, 'html'))
 
