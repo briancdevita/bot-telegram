@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmación de Reserva</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Confirmación de Reserva</h2>
+        </div>
+        <div class="content">
+            <p>Estimado/a <strong>{{contact_name}}</strong>,</p>
+            
+            <p>Le confirmamos que su reserva ha sido registrada correctamente en nuestro sistema.</p>
+            
+            <div class="reservation-details">
+                <p><strong>ID de Reserva:</strong> {{reservation_id}}</p>
+                <p><strong>Servicio:</strong> {{service}}</p>
+                <p><strong>Fecha:</strong> {{date}}</p>
+                <p><strong>Hora:</strong> {{time}}</p>
+            </div>
+            
+            <p>Por favor, guarde este correo como referencia para futuras consultas.</p>
+            
+            <p>Si necesita cancelar o modificar su reserva, por favor contáctenos con anticipación o utilice nuestro bot de Telegram.</p>
+            
+            <div class="button-container">
+                <a href="https://t.me/tu_bot" class="button">Acceder al Bot</a>
+            </div>
+        </div>
+        <div class="footer">
+            <p>Este es un correo automático, por favor no responda a este mensaje.</p>
+            <p>© {{current_year}} Sistema de Reservas</p>
+        </div>
+    </div>
+</body>
+</html>

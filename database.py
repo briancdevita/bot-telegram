@@ -31,8 +31,8 @@ def create_table(conn):
                 service TEXT NOT NULL,
                 date TEXT NOT NULL,
                 time TEXT NOT NULL,
-                contact TEXT NOT NULL
-              
+                contact TEXT NOT NULL,
+                email TEXT NOT NULL
             )
             """
         )
@@ -44,7 +44,7 @@ def create_table(conn):
 
 
 
-def save_reservation( id, user_id, service, date, time, contact):
+def save_reservation( id, user_id, service, date, time, contact, email):
     print(contact)
 
 
@@ -55,16 +55,17 @@ def save_reservation( id, user_id, service, date, time, contact):
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO reservations (id, user_id, service, date, time, contact)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO reservations (id, user_id, service, date, time, contact, email)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (   id,
                     user_id, 
                     service, 
                     date, 
                     time, 
-                    contact
-                    )
+                    contact,
+                    email
+                    ),
                     
             )
             conn.commit()

@@ -2,6 +2,7 @@ import os
 import logging 
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
+from email_utils import send_email
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
@@ -36,7 +37,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-SELECTING_SERVICE, SELETING_DATE, SELECTING_TIME, CONFIRMING, TYPING_CONTACT = range(5)
+SELECTING_SERVICE, SELETING_DATE, SELECTING_TIME, CONFIRMING, TYPING_CONTACT, TYPING_EMAIL = range(6)
 
 
 reservations = {}
@@ -114,86 +115,69 @@ async def selected_time(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     return SELECTING_TIME
 
 async def save_contact(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Guarda la informacion de contacto y confirma la reserva"""
+    """Guarda el nombre y solicita el correo electrónico"""
 
     user_name = update.message.text 
     context.user_data["contact"] = user_name
 
-
-    reservation_id = F"RES-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-    context.user_data["reservation_id"] = reservation_id
-
-
-
-
-    # Guardar la reserva en la base de datos
-    db_result = save_reservation(
-        id = reservation_id,
-        user_id = update.effective_user.id,
-        service = context.user_data["service"],
-        date = context.user_data["date"],
-        time = context.user_data["time"],
-        contact= user_name,
-    )
-
-
-    
-
-    if db_result:
-        logger.info(f"Reserva guardada en la base de datos: {reservation_id}")
-    else:
-        logger.error(f"No se pudo guardar la reserva en la base de datos: {reservation_id}")
-
-    keyboard = [
-        [
-            InlineKeyboardButton("Confirmar ✅", callback_data="confirm"),
-            InlineKeyboardButton("Cancelar ❌", callback_data="cancel")
-        ]
-    ]
-
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
     await update.message.reply_text(
-        f"📝 Resumen de tu reserva:\n\n"
-        f"🆔 ID de Reserva: {reservation_id}\n"
-        f"🧩 Servicio: {context.user_data['service']}\n"
-        f"📅 Fecha: {context.user_data['date']}\n"
-        f"🕒 Hora: {context.user_data['time']}\n"
-        f"👤 Contacto: {context.user_data['contact']}\n\n"
-        "Por favor, confirma tu reserva:",
-        reply_markup=reply_markup,
-        parse_mode="Markdown",
+        f"Gracias, {user_name}.\n\n"
+        "Por favor, ingresa tu correo electrónico para recibir la confirmación:"
     )
-    return CONFIRMING
-
+    
+    return TYPING_EMAIL
 
 async def confirm_reservation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Confirma la reserva y envia un mensaje de confirmacion"""
+    """Confirma la reserva y envía un mensaje de confirmación"""
 
     query = update.callback_query
     await query.answer()
 
     if query.data == "confirm":
-        await query.edit_message_text(
-            f"¡Reserva confirmada! 🎉\n\n"
-            f"Tu reserva con ID {context.user_data['reservation_id']} ha sido confirmada.\n"
-            f"Te esperamos el {context.user_data['date']} a las {context.user_data['time']}.\n"
-            f"Para cancelartu reserva usa el comando /cancelar seguido de tu ID de reserva."
-            "Para hacer una nueva reserva usa el comando /start."
-
+        # Crear diccionario con datos de la reserva para el correo
+        reservation_data = {
+            "id": context.user_data["reservation_id"],
+            "service": context.user_data["service"],
+            "date": context.user_data["date"],
+            "time": context.user_data["time"],
+            "contact": context.user_data["contact"]
+        }
+        
+        # Enviar correo electrónico de confirmación
+        email_sent = send_email(context.user_data["email"], reservation_data)
+        
+        # Mensaje adicional si se envió el correo
+        email_message = (
+            "\n📧 Se ha enviado un correo con los detalles de su reserva."
+            if email_sent else 
+            "\n⚠️ No se pudo enviar el correo de confirmación, pero su reserva ha sido registrada."
         )
-
-    else :
-        if context.user_data["reservation_id"] in reservations:
-            del reservations[context.user_data("reservation_id")]
-
+        
+        await query.edit_message_text(
+            f"✅ *RESERVA CONFIRMADA*\n\n"
+            f"🆔 *ID de Reserva:* `{context.user_data['reservation_id']}`\n"
+            f"📅 *Fecha:* {context.user_data['date']}\n"
+            f"🕒 *Hora:* {context.user_data['time']}\n"
+            f"🧩 *Servicio:* {context.user_data['service']}\n"
+            f"{email_message}\n\n"
+            f"Hemos registrado su solicitud correctamente. Le esperamos en la fecha y hora indicadas.\n\n"
+            f"*Opciones disponibles:*\n"
+            f"• Para cancelar esta reserva: `/cancelar {context.user_data['reservation_id']}`\n"
+            f"• Para una nueva reserva: `/start`\n"
+            f"• Para ver todas sus reservas: `/reservas`",
+            parse_mode="Markdown"
+        )
+    else:
+        # Si se cancela, eliminar la reserva de la base de datos
+        if "reservation_id" in context.user_data:
+            delete_reservation(context.user_data["reservation_id"])
+            
         await query.edit_message_text(
             "Reserva cancelada. Para hacer una nueva reserva usa el comando /start."
-
         )
 
-        context.user_data.clear()
-        return ConversationHandler.END
+    context.user_data.clear()
+    return ConversationHandler.END
     
 async def cancel_reservation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
@@ -280,6 +264,60 @@ async def select_contact_info(update: Update, context: ContextTypes.DEFAULT_TYPE
     return TYPING_CONTACT
 
 
+async def save_email(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Guarda el email y muestra el resumen de la reserva"""
+
+    user_email = update.message.text
+    context.user_data["email"] = user_email
+
+    # Generar ID de reserva
+    reservation_id = f"RES-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    context.user_data["reservation_id"] = reservation_id
+
+    # Guardar la reserva en la base de datos
+    db_result = save_reservation(
+        id=reservation_id,
+        user_id=update.effective_user.id,
+        service=context.user_data["service"],
+        date=context.user_data["date"],
+        time=context.user_data["time"],
+        contact=context.user_data["contact"],
+        email=context.user_data["email"],
+    )
+
+    if db_result:
+        logger.info(f"Reserva guardada en la base de datos: {reservation_id}")
+    else:
+        logger.error(f"No se pudo guardar la reserva en la base de datos: {reservation_id}")
+
+    keyboard = [
+        [
+            InlineKeyboardButton("Confirmar ✅", callback_data="confirm"),
+            InlineKeyboardButton("Cancelar ❌", callback_data="cancel")
+        ]
+    ]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await update.message.reply_text(
+        f"📝 Resumen de tu reserva:\n\n"
+        f"🆔 ID de Reserva: {reservation_id}\n"
+        f"🧩 Servicio: {context.user_data['service']}\n"
+        f"📅 Fecha: {context.user_data['date']}\n"
+        f"🕒 Hora: {context.user_data['time']}\n"
+        f"👤 Contacto: {context.user_data['contact']}\n"
+        f"📧 Email: {user_email}\n\n"
+        "Por favor, confirma tu reserva:",
+        reply_markup=reply_markup,
+        parse_mode="Markdown",
+    )
+    return CONFIRMING
+
+
+
+
+
+
 def main() -> None:
     """Configura el bot y lo ejecuta"""
  
@@ -303,6 +341,10 @@ def main() -> None:
             TYPING_CONTACT: [
                MessageHandler(filters.TEXT & ~filters.COMMAND, save_contact),
             ],
+            TYPING_EMAIL: [
+               MessageHandler(filters.TEXT & ~filters.COMMAND, save_email),
+            ],
+            
             CONFIRMING: [
                 CallbackQueryHandler(confirm_reservation),
             ],
